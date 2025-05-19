@@ -1,70 +1,104 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { GiftedChat, Actions } from 'react-native-gifted-chat';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useContext, useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppContext } from '../context/AppContext';
-import { subscribeToMessages, sendMessage } from '../services/ServiceChat';
-import { uploadImage } from '../services/ServiceStorage';
+import { onSnapshot, query, orderBy } from 'firebase/firestore';
+import { getChatMessagesRef, addChatMessage } from '../services/ServiceChat';
 
 export default function ChatScreen({ route }) {
-  const { chatId, otherUid } = route.params;
+  const { chatId } = route.params;
   const { user } = useContext(AppContext);
   const [messages, setMessages] = useState([]);
+  const [text, setText] = useState('');
 
-  
   useEffect(() => {
-    const unsubscribe = subscribeToMessages(chatId, setMessages);
-    return () => unsubscribe();
+    const q = query(getChatMessagesRef(chatId), orderBy('createdAt'));
+    const unsubscribe = onSnapshot(q, snap => {
+      const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMessages(msgs);
+    }, console.error);
+    return unsubscribe;
   }, [chatId]);
 
 
-  const onSend = useCallback((msgs = []) => {
-    const [m] = msgs;
-    sendMessage(chatId, {
-      text: m.text,
-      user: { _id: user.uid, name: user.displayName },
+  const handleSend = async () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    await addChatMessage(chatId, {
+      text:       trimmed,
+      senderId:   user.uid,
+      createdAt:  new Date()
     });
-  }, [chatId, user]);
-
-
-  const pickImage = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.5 });
-    if (res.cancelled) return;
-    const url = await uploadImage(res.uri, `chats/${chatId}`);
-    if (url) {
-      sendMessage(chatId, {
-        image: url,
-        user: { _id: user.uid, name: user.displayName },
-      });
-    }
+    setText('');
   };
 
-  const renderActions = (props) => (
-    <Actions
-      {...props}
-      options={{
-        ['Enviar Foto']: pickImage,
-        Cancel: () => {},
-      }}
-      icon={() => <View style={styles.cameraIcon}><Text>📷</Text></View>}
-    />
-  );
+ 
+  const renderItem = ({ item }) => {
+    const isMe = item.senderId === user.uid;
+    return (
+      <View style={[styles.bubble, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
+        <Text style={[styles.msgText, isMe && { color: '#fff' }]}>{item.text}</Text>
+      </View>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <GiftedChat
-        messages={messages}
-        onSend={onSend}
-        user={{ _id: user.uid, name: user.displayName }}
-        renderActions={renderActions}
-        showUserAvatar
-        alwaysShowSend
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={messages}
+        keyExtractor={m => m.id}
+        renderItem={renderItem}
+        inverted
+        contentContainerStyle={styles.list}
       />
-    </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 80}
+      >
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Escribe un mensaje..."
+            value={text}
+            onChangeText={setText}
+          />
+          <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+            <Text style={styles.sendText}>Enviar</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  cameraIcon: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  list:      { flexGrow: 1, justifyContent: 'flex-end', padding: 10 },
+
+  bubble:    { maxWidth: '70%', padding: 10, borderRadius: 8, marginVertical: 4 },
+  bubbleLeft:  { backgroundColor: '#eee', alignSelf: 'flex-start' },
+  bubbleRight: { backgroundColor: '#0084ff', alignSelf: 'flex-end' },
+
+  msgText:   { color: '#000' },
+
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    borderTopWidth: 1,
+    borderColor:   '#ddd',
+    padding:       5
+  },
+  input:     { flex: 1, padding: 10 },
+  sendBtn:   { padding: 10 },
+  sendText:  { color: '#007aff', fontWeight: 'bold' }
 });

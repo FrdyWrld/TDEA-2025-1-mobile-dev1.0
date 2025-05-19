@@ -1,61 +1,85 @@
-import {  
-  addDoc, collection, query, where, getDocs, doc, serverTimestamp, onSnapshot  
+import { 
+  collection,
+  doc,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  setDoc,
+  serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../lib/Firebase';
+import { db } from './ServiceFireStore'; 
 
-export const findOrCreateChat = async (uid1, uid2) => {
-
+/**
+ * @param {string} userId
+ * @returns {Promise<Array<{id:string, participants:string[], lastUpdated:Timestamp}>>}
+ */
+export async function getUserChats(userId) {
   const chatsRef = collection(db, 'chats');
-  const q = query(chatsRef, where('participants', 'array-contains', uid1));
-  const snap = await getDocs(q);
-
-  let chatDoc = null;
-  snap.forEach(d => {
-    const data = d.data();
-    if (data.participants.includes(uid2)) {
-      chatDoc = { id: d.id, ...data };
-    }
-  });
-
- 
-  if (!chatDoc) {
-    const ref = await addDoc(chatsRef, {
-      participants: [uid1, uid2],
-      createdAt: serverTimestamp(),
-    });
-    chatDoc = { id: ref.id, participants: [uid1, uid2] };
-  }
-
-  return chatDoc.id;
-};
-
-export const subscribeToMessages = (chatId, callback) => {
-  const msgsRef = collection(db, 'chats', chatId, 'messages');
-  const q = query(msgsRef, serverTimestamp() && orderBy('createdAt', 'desc') );
-
- 
-  return onSnapshot(
-    query(msgsRef, orderBy),
-    snap => {
-      const msgs = snap.docs
-        .map(d => ({ _id: d.id, ...d.data(), createdAt: d.data().createdAt.toDate() }))
-        .sort((a,b)=> b.createdAt - a.createdAt);
-      callback(msgs);
-    }
+  const q = query(
+    chatsRef,
+    where('participants', 'array-contains', userId),
+    orderBy('lastUpdated', 'desc')
   );
-};
-
-export const sendMessage = async (chatId, message) => {
-  const msgsRef = collection(db, 'chats', chatId, 'messages');
-  await addDoc(msgsRef, {
-    ...message,
-    createdAt: serverTimestamp(),
-  });
-};
-
-export const getUserChats = async (uid) => {
-  const chatsRef = collection(db, 'chats');
-  const q = query(chatsRef, where('participants', 'array-contains', uid));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-};
+}
+
+/**
+ * @param {string} userId
+ * @param {(chats:Array)=>void} callback
+ * @param {(error:Error)=>void} errorCallback
+ */
+export function subscribeToUserChats(userId, callback, errorCallback) {
+  const chatsRef = collection(db, 'chats');
+  const q = query(
+    chatsRef,
+    where('participants', 'array-contains', userId),
+    orderBy('lastUpdated', 'desc')
+  );
+  return onSnapshot(q, snap => {
+    const chats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    callback(chats);
+  }, errorCallback);
+}
+
+/**
+ * @param {string[]} participants 
+ * @returns {Promise<string>} 
+ */
+export async function createChat(participants) {
+  const chatsRef = collection(db, 'chats');
+  const chatData = {
+    participants,
+    lastUpdated: serverTimestamp()
+  };
+  const { id } = await addDoc(chatsRef, chatData);
+  return id;
+}
+
+/**
+ * @param {string} chatId
+ * @param {(messages:Array)=>void} callback
+ * @param {(error:Error)=>void} errorCallback
+ */
+export function subscribeToChatMessages(chatId, callback, errorCallback) {
+  const msgsRef = collection(db, 'chats', chatId, 'messages');
+  const q = query(msgsRef, orderBy('createdAt', 'asc'));
+  return onSnapshot(q, snap => {
+    const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    callback(messages);
+  }, errorCallback);
+}
+
+/**
+ * @param {string} chatId
+ * @param {{ text:string, senderId:string, createdAt?:Date }} msg
+ */
+export async function sendMessage(chatId, { text, senderId, createdAt = new Date() }) {
+  const msgsRef = collection(db, 'chats', chatId, 'messages');
+  await addDoc(msgsRef, { text, senderId, createdAt });
+  const chatDoc = doc(db, 'chats', chatId);
+  await setDoc(chatDoc, { lastUpdated: createdAt }, { merge: true });
+}

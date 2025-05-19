@@ -1,56 +1,77 @@
-import {addDoc, collection, getDocs, deleteDoc, doc, updateDoc, query, where} from 'firebase/firestore';
-import {db} from '../lib/Firebase'
-import {Alert} from "react-native";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  deleteDoc,
+  doc
+} from 'firebase/firestore';
+import { db } from '../lib/Firebase'; 
 
 
-export const createRecord = async ({collectionName, data}) => {
-    try {
-        const colRef = collection(db, collectionName);
-        const docRef = await addDoc(colRef, data);
-        return docRef.id;
-    } catch (e) {
-        Alert.alert('Error', e.message);
-    }
+export async function createRecord({ collectionName, data }) {
+  try {
+    const ref = await addDoc(collection(db, collectionName), data);
+    return ref.id;
+  } catch (error) {
+    console.error(`Error creando registro en ${collectionName}:`, error);
+    throw error;
+  }
 }
 
-export const getCollection = async ({collectionName}) => {
-    console.log('ingresó a getCollection');
-    try {
-        const colRef = collection(db, collectionName);
-        const querySnapshot = await getDocs(colRef);
-        console.log(querySnapshot.docs);
-        return querySnapshot.docs.map(doc => doc.data());
-    } catch (e) {
-        Alert.alert('Error', e.message);
-    }
+
+export async function updateRecord({ collectionName, docId, data }) {
+  try {
+    const ref = doc(db, collectionName, docId);
+    await updateDoc(ref, data);
+    return true;
+  } catch (error) {
+    console.error(`Error actualizando registro ${docId} en ${collectionName}:`, error);
+    throw error;
+  }
 }
 
-export const getCollectionByUser = async ({userId}) => {
-    try {
-        const colRef = collection(db, 'books');
-        const q = query(colRef, where('ownerUserId', '==', userId));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-    } catch (e) {
-        Alert.alert('Error', e.message);
-    }
+export async function deleteRecord({ collectionName, docId }) {
+  try {
+    await deleteDoc(doc(db, collectionName, docId));
+    return true;
+  } catch (error) {
+    console.error(`Error borrando registro ${docId} en ${collectionName}:`, error);
+    throw error;
+  }
 }
 
-export const updateRecord = async ({collectionName, docId, data}) => {
-    try {
-        const docRef = doc(db, collectionName, docId);
-        await updateDoc(docRef, data);
-    } catch (e) {
-        Alert.alert('Error', e.message);
-    }
+
+export async function getCollection({ collectionName }) {
+  try {
+    const snap = await getDocs(collection(db, collectionName));
+    return snap.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
+  } catch (error) {
+    console.error(`Error leyendo colección ${collectionName}:`, error);
+    return [];
+  }
 }
 
-export const deleteRecord = async ({collectionName, docId}) => {
-    try {
-        const colRef = collection(db, collectionName);
-        await deleteDoc(doc(colRef, docId));
-    } catch (e) {
-        Alert.alert('Error', e.message);
-    }
-}
 
+export async function getCollectionByUser({ userId }) {
+  try {
+    const q = query(
+      collection(db, 'users'),
+      where('uid', '==', userId)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
+  } catch (error) {
+    console.error(`Error leyendo usuarios para userId=${userId}:`, error);
+    return [];
+  }
+}
