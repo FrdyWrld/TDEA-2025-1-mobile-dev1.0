@@ -41,7 +41,6 @@ export function useLogin() {
                 default:
                     Alert.alert('Error', 'No se pudo iniciar sesión');
             }
-
             return false;
         }
     };

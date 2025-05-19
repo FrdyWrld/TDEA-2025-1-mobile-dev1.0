@@ -30,7 +30,10 @@
       }
     },
     "extra": {
-      "GOOGLE_MAPS_JS_KEY": "AIzaSyB7WZM7q1LItjDATGrc8Q0RH4M0HHcAJNw"
+      "GOOGLE_MAPS_JS_KEY": "AIzaSyB7WZM7q1LItjDATGrc8Q0RH4M0HHcAJNw",
+      "eas": {
+        "projectId": "fe82bedf-98e7-42bc-aa51-823f5face2ea"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
