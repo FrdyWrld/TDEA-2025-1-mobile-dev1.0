@@ -15,7 +15,9 @@
     "android": {
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "CAMERA"
       ],
       "config": {
         "googleMaps": {
@@ -27,6 +29,10 @@
     "ios": {
       "config": {
         "googleMapsApiKey": "AIzaSyB7WZM7q1LItjDATGrc8Q0RH4M0HHcAJNw"
+      },
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Esta app necesita acceso a tus fotos para seleccionar una imagen de perfil.",
+        "NSCameraUsageDescription": "Esta app necesita acceso a la cámara para tomar una foto de perfil."
       }
     },
     "extra": {
