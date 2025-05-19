@@ -43,21 +43,33 @@ export default function ProfileScreen() {
   }, [user]);
 
   const pickImage = async () => {
+    console.log("pickImage invoked");
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    console.log("Permission status:", status);
     if (status !== 'granted') {
       Alert.alert('Permiso denegado', 'Se requiere permiso para acceder a la galería.');
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaType.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,  // Cambiado aquí para compatibilidad
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
 
-    if (!result.canceled) {
-      setUserDetails({ ...userDetails, photoUrl: result.assets[0].uri });
+      console.log("ImagePicker result:", JSON.stringify(result, null, 2));
+
+      if (!result.canceled) {
+        setUserDetails({ ...userDetails, photoUrl: result.assets[0].uri });
+        console.log("Photo URL set to:", result.assets[0].uri);
+      } else {
+        console.log("ImagePicker canceled");
+      }
+    } catch (error) {
+      console.error("Error in launchImageLibraryAsync:", error);
+      Alert.alert("Error", "No se pudo abrir la galería de imágenes.");
     }
   };
 
