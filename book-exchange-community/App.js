@@ -1,4 +1,4 @@
-
+import 'react-native-gesture-handler'; // 👈 Importar primero
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { AppProvider } from './context/AppContext';
@@ -12,7 +12,7 @@ export default function App() {
       <SafeAreaProvider>
         <ActionSheetProvider>
           <NavigationContainer>
-            <AppNavigation/>
+            <AppNavigation />
           </NavigationContainer>
         </ActionSheetProvider>
       </SafeAreaProvider>

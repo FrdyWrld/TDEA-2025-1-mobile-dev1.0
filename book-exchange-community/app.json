@@ -6,9 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/Logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled":false,
     "splash": {
-      "image": "./assets/Swap-Books.gif",
+      "image": "./assets/Swap-Books.png",
       "resizeMode": "contain",
       "backgroundColor": "#011F26"
     },

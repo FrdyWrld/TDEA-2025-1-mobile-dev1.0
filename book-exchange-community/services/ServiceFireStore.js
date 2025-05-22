@@ -28,12 +28,14 @@ export const getCollection = async ({ collectionName }) => {
   try {
     const colRef = collection(db, collectionName);
     const querySnapshot = await getDocs(colRef);
-    console.log(querySnapshot.docs);
-    return querySnapshot.docs.map(doc => doc.data());
+    const result = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(result);
+    return result;
   } catch (e) {
     Alert.alert('Error', e.message);
   }
 };
+
 
 export const getCollectionByUser = async ({ userId }) => {
   try {

@@ -45,7 +45,6 @@ export function useLogin() {
   };
 }
 
-
 export function useLogout() {
   const { setIsAuthenticated, setUser } = useContext(AppContext);
 
@@ -60,7 +59,6 @@ export function useLogout() {
   };
 }
 
-
 export function useRegister() {
   const { setIsAuthenticated, setUser } = useContext(AppContext);
 
@@ -70,7 +68,6 @@ export function useRegister() {
       const { user } = credential;
       const displayName = email.split('@')[0];
 
-  
       await createRecord({
         collectionName: 'users',
         data: {
@@ -85,12 +82,11 @@ export function useRegister() {
         }
       });
 
-   
       await sendEmailVerification(user);
+      Alert.alert('Registro exitoso', 'Revisa tu correo para verificar la cuenta antes de iniciar sesión.');
+      setUser(null); 
+      setIsAuthenticated(false); 
 
-      setUser(user);
-      setIsAuthenticated(true);
-      Alert.alert('Registro exitoso', 'Revisa tu correo para verificar la cuenta');
       return true;
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
@@ -102,7 +98,6 @@ export function useRegister() {
     }
   };
 }
-
 
 export function useRecoverPassword() {
   return async email => {
