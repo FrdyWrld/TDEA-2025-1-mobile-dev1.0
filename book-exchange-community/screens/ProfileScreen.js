@@ -13,7 +13,7 @@ import { AppContext } from "../context/AppContext";
 import { useLogout } from "../services/ServiceAuth";
 import CompButton from "../components/CompButton";
 import { MaterialIcons } from "@expo/vector-icons";
-import { getRecord, updateRecord } from "../services/ServiceFireStore";
+import { getRecord, updateRecord, getCollection } from "../services/ServiceFireStore";
 import { useTheme } from "@react-navigation/native";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/Firebase";
@@ -30,6 +30,7 @@ export default function ProfileScreen() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userBooks, setUserBooks] = useState([]);
 
   useEffect(() => {
     async function loadUserProfile() {
@@ -42,6 +43,18 @@ export default function ProfileScreen() {
       setLoading(false);
     }
     loadUserProfile();
+  }, [user]);
+
+  // Cargar libros añadidos por el usuario
+  useEffect(() => {
+    async function fetchBooks() {
+      if (!user) return;
+      const allBooks = await getCollection({ collectionName: "books" });
+      // Filtra libros donde ownerUserId es el uid del usuario
+      const myBooks = allBooks.filter(b => b.ownerUserId === user.uid);
+      setUserBooks(myBooks);
+    }
+    fetchBooks();
   }, [user]);
 
   const pickImage = async () => {
@@ -135,6 +148,15 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       )}
 
+      <Text style={{ color: colors.text, textAlign: "center", marginBottom: 10 }}>
+        <Text style={{ fontWeight: "bold" }}>Correo: </Text>
+        {user?.email || "No disponible"}
+      </Text>
+      <Text style={{ color: colors.text, textAlign: "center", marginBottom: 20 }}>
+        <Text style={{ fontWeight: "bold" }}>Nombre: </Text>
+        {userDetails?.name || user?.displayName || "No disponible"}
+      </Text>
+
       <TextInput
         style={[styles.input, { color: colors.text, borderColor: colors.border }]}
         placeholder="Nombre"
@@ -178,6 +200,21 @@ export default function ProfileScreen() {
         style={styles.logoutButton}
         textStyle={{ color: "#F2A71B" }}
       />
+
+      {/* Mostrar libros añadidos */}
+      <Text style={{ color: colors.text, fontWeight: "bold", marginTop: 20, marginBottom: 10 }}>
+        Libros añadidos:
+      </Text>
+      {userBooks.length === 0 ? (
+        <Text style={{ color: colors.text, textAlign: "center" }}>No has añadido libros aún.</Text>
+      ) : (
+        userBooks.map(book => (
+          <View key={book.id} style={{ marginBottom: 10, padding: 10, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
+            <Text style={{ fontWeight: "bold" }}>{book.title}</Text>
+            <Text>Autor: {book.author?.[0] || "Desconocido"}</Text>
+          </View>
+        ))
+      )}
     </View>
   );
 }

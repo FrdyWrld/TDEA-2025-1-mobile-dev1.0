@@ -37,14 +37,30 @@ export default function AddBookDetailsScreen({navigation}) {
 
     const handleAddBook = async () => {
         setLoading(true);
+
+        // Validación de descripción
+        if (description && description.length > 500) {
+            setLoading(false);
+            Alert.alert('Error', 'La descripción es demasiado larga (máx. 500 caracteres)');
+            return;
+        }
+
+        // Validación de campos requeridos
+        if (!book.volumeInfo?.title || !user?.user?.uid) {
+            setLoading(false);
+            Alert.alert('Error', 'Faltan datos obligatorios para guardar el libro.');
+            return;
+        }
+
         const condition = {
             annotations,
             highlights,
             coverDamage,
             pageDamage,
             bindingDamage,
-            description
-        }
+            description: description || ""
+        };
+
         const data = {
             title: book.volumeInfo?.title,
             author: book.volumeInfo?.authors,
@@ -59,14 +75,20 @@ export default function AddBookDetailsScreen({navigation}) {
             status: 'draft',
             condition,
             photos: [],
-        }
-        const success = await addBook(data);
-        if (success) {
+        };
+
+        try {
+            const success = await addBook(data);
             setLoading(false);
-            Alert.alert('Libro agregado exitosamente');
-            navigation.navigate('UploadBookPhotosScreen', {idBook: success});
-        } else {
-            Alert.alert('Error', 'Error al agregar el libro');
+            if (success) {
+                Alert.alert('Libro agregado exitosamente');
+                navigation.navigate('UploadBookPhotosScreen', {idBook: success});
+            } else {
+                Alert.alert('Error', 'No se pudo guardar el libro. Intenta de nuevo.');
+            }
+        } catch (error) {
+            setLoading(false);
+            Alert.alert('Error', error.message || 'Ocurrió un error al guardar el libro.');
         }
     }
 
